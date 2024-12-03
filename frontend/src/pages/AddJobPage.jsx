@@ -1,52 +1,62 @@
-import {useState} from "react";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const AddJobPage = () => {
   const [title, setTitle] = useState("");
-  const [type, setType] = useState("");
+  const [type, setType] = useState("Full-Time");
   const [description, setDescription] = useState("");
   const [companyName, setCompanyName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [contactPhone, setContactPhone] = useState("");
-  
-  const submitForm = (e) => {
-    e.preventDefault();
-    console.log("submitForm called");
 
-    if (!title || !type || !description || !companyName ||!contactEmail || !contactPhone){
-      console.log("Fill the missing fields")
-      return
-  }
+  const user = JSON.parse(localStorage.getItem("user"));
+  const token = user ? user.token : null;
 
-  const newJob = {
-    title,
-    type,
-    description,
-    company: {
-      name: companyName,
-      contactEmail,
-      contactPhone
-    }
-  }
-  addJob(newJob)
+  const navigate = useNavigate();
 
-  async function addJob(newJob){
-    try{
+  const addJob = async (newJob) => {
+    try {
+      console.log("Adding job:", newJob);
       const res = await fetch("/api/jobs", {
         method: "POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify(newJob)
-      })
-      if (res.ok){
-        console.log("Job added successfully")
-      } else {
-        console.error("Error creating job (FE)")
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(newJob),
+      });
+      if (!res.ok) {
+        throw new Error("Failed to add job");
       }
-    } catch(error){
-      console.error("Error adding job (FE)", error)
+      return true;
+    } catch (error) {
+      console.error("Error adding job:", error);
+      return false;
     }
-  }
-}
+  };
 
+  const submitForm = async (e) => {
+    e.preventDefault();
+
+    const newJob = {
+      title,
+      type,
+      description,
+      company: {
+        name: companyName,
+        contactEmail,
+        contactPhone,
+      },
+    };
+
+    const success = await addJob(newJob);
+    if (success) {
+      console.log("Job Added Successfully");
+      navigate("/");
+    } else {
+      console.error("Failed to add the job");
+    }
+  };
 
   return (
     <div className="create">
@@ -57,13 +67,10 @@ const AddJobPage = () => {
           type="text"
           required
           value={title}
-          onChange={(e)=>setTitle(e.target.value)}
+          onChange={(e) => setTitle(e.target.value)}
         />
         <label>Job type:</label>
-        <select id="type" value={type} onChange={(e => setType(e.target.value))} >
-          <option value="" disabled>
-            Select job type
-          </option>
+        <select value={type} onChange={(e) => setType(e.target.value)}>
           <option value="Full-Time">Full-Time</option>
           <option value="Part-Time">Part-Time</option>
           <option value="Remote">Remote</option>
@@ -75,7 +82,6 @@ const AddJobPage = () => {
           required
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-
         ></textarea>
         <label>Company Name:</label>
         <input
@@ -86,21 +92,22 @@ const AddJobPage = () => {
         />
         <label>Contact Email:</label>
         <input
-          type="text"
+          type="email"
           required
           value={contactEmail}
           onChange={(e) => setContactEmail(e.target.value)}
         />
         <label>Contact Phone:</label>
         <input
-          type="text"
+          type="tel"
           required
           value={contactPhone}
-          onChange={(e)=> setContactPhone(e.target.value)}
+          onChange={(e) => setContactPhone(e.target.value)}
         />
-        <button>Add Job</button>
+        <button type="submit">Add Job</button>
       </form>
     </div>
   );
 };
+
 export default AddJobPage;
